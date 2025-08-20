@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "deploy:dev": "./scripts/deploy-dev.sh"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
