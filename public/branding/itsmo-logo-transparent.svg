@@ -1,0 +1,41 @@
+<svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bull silhouette (left side) - Green -->
+  <g transform="translate(10, 15)">
+    <!-- Bull body -->
+    <path d="M5 45 L5 25 Q5 20 10 20 L25 20 Q30 20 30 25 L30 45 L5 45 Z" fill="#10b981"/>
+    <!-- Bull head and horns -->
+    <path d="M10 20 L10 10 Q10 5 17.5 5 Q25 5 25 10 L25 20" fill="#10b981"/>
+    <!-- Bull horns -->
+    <path d="M12 8 Q8 3 5 8" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <path d="M23 8 Q27 3 30 8" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <!-- Bull legs -->
+    <rect x="8" y="45" width="4" height="12" rx="2" fill="#10b981"/>
+    <rect x="15" y="45" width="4" height="12" rx="2" fill="#10b981"/>
+    <rect x="22" y="45" width="4" height="12" rx="2" fill="#10b981"/>
+  </g>
+  
+  <!-- Bear silhouette (right side) - Red/Orange gradient -->
+  <g transform="translate(65, 15)">
+    <!-- Bear body -->
+    <path d="M5 45 L5 25 Q5 20 10 20 L25 20 Q30 20 30 25 L30 45 L5 45 Z" fill="url(#bearGradient)"/>
+    <!-- Bear head -->
+    <path d="M8 20 L8 12 Q8 8 12 8 L23 8 Q27 8 27 12 L27 20" fill="url(#bearGradient)"/>
+    <!-- Bear ears -->
+    <circle cx="12" cy="10" r="3" fill="url(#bearGradient)"/>
+    <circle cx="23" cy="10" r="3" fill="url(#bearGradient)"/>
+    <!-- Bear snout -->
+    <ellipse cx="17.5" cy="15" rx="4" ry="2" fill="url(#bearGradient)"/>
+    <!-- Bear legs -->
+    <rect x="8" y="45" width="4" height="12" rx="2" fill="url(#bearGradient)"/>
+    <rect x="15" y="45" width="4" height="12" rx="2" fill="url(#bearGradient)"/>
+    <rect x="22" y="45" width="4" height="12" rx="2" fill="url(#bearGradient)"/>
+  </g>
+  
+  <!-- Gradient definition for bear -->
+  <defs>
+    <linearGradient id="bearGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

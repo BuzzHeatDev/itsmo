@@ -1,0 +1,37 @@
+<svg width="80" height="48" viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bull (left side) - Green -->
+  <g transform="translate(5, 8)">
+    <!-- Bull body -->
+    <path d="M8 32 L8 20 Q8 16 12 16 L20 16 Q24 16 24 20 L24 32 L8 32 Z" fill="#10b981"/>
+    <!-- Bull head -->
+    <path d="M12 16 L12 8 Q12 4 16 4 Q20 4 20 8 L20 16" fill="#10b981"/>
+    <!-- Bull horns -->
+    <path d="M14 4 Q12 2 10 4" stroke="#10b981" stroke-width="2" fill="none"/>
+    <path d="M18 4 Q20 2 22 4" stroke="#10b981" stroke-width="2" fill="none"/>
+    <!-- Bull legs -->
+    <rect x="10" y="32" width="3" height="6" fill="#10b981"/>
+    <rect x="19" y="32" width="3" height="6" fill="#10b981"/>
+  </g>
+  
+  <!-- Bear (right side) - Red/Orange -->
+  <g transform="translate(45, 8)">
+    <!-- Bear body -->
+    <path d="M8 32 L8 20 Q8 16 12 16 L20 16 Q24 16 24 20 L24 32 L8 32 Z" fill="#ef4444"/>
+    <!-- Bear head -->
+    <path d="M12 16 L12 8 Q12 4 16 4 Q20 4 20 8 L20 16" fill="#ef4444"/>
+    <!-- Bear ears -->
+    <circle cx="14" cy="6" r="2" fill="#ef4444"/>
+    <circle cx="18" cy="6" r="2" fill="#ef4444"/>
+    <!-- Bear legs -->
+    <rect x="10" y="32" width="3" height="6" fill="#ef4444"/>
+    <rect x="19" y="32" width="3" height="6" fill="#ef4444"/>
+  </g>
+  
+  <!-- Market trend arrows -->
+  <g transform="translate(32, 20)">
+    <!-- Up arrow (bull market) -->
+    <path d="M-8 8 L-4 4 L0 8" stroke="#10b981" stroke-width="2" fill="none"/>
+    <!-- Down arrow (bear market) -->
+    <path d="M8 0 L12 4 L16 0" stroke="#ef4444" stroke-width="2" fill="none"/>
+  </g>
+</svg>
