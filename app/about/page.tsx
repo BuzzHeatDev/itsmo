@@ -7,7 +7,7 @@ export default function AboutUs() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <img 
                 src="/branding/itsmo logo3.jpeg" 
                 alt="IsTheStockMarketOpen Logo" 
@@ -17,7 +17,7 @@ export default function AboutUs() {
                 <span className="text-gray-900">IsTheStockMarket</span>
                 <span className="text-green-600">Open</span>
               </h1>
-            </div>
+            </Link>
             <nav className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Home

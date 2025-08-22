@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -45,7 +46,7 @@ export default function Contact() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <img 
                 src="/branding/itsmo logo3.jpeg" 
                 alt="IsTheStockMarketOpen Logo" 
@@ -56,7 +57,7 @@ export default function Contact() {
                 <span className="text-green-600">Open</span>
                 <span className="text-orange-500">?</span>
               </h1>
-            </div>
+            </Link>
             <div className="text-right">
               <div className="text-sm text-gray-500">
                 Contact Us
