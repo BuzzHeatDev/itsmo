@@ -2,38 +2,48 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/database';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables for server');
-}
+// Only create Supabase clients if environment variables are available
+let supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
+let supabaseServer: ReturnType<typeof createClient<Database>> | null = null;
 
-// Server client with service role key for admin operations
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
-
-// Regular server client for public operations
-export const supabaseServer = createClient<Database>(
-  supabaseUrl,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
+if (supabaseUrl && supabaseServiceKey) {
+  // Server client with service role key for admin operations
+  supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
-);
+  });
+} else {
+  console.warn('Missing Supabase environment variables for admin operations');
+}
+
+if (supabaseUrl && supabaseAnonKey) {
+  // Regular server client for public operations
+  supabaseServer = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+} else {
+  console.warn('Missing Supabase environment variables for server operations');
+}
 
 /**
  * Server-side function to get complete market data
  * Used for ISR/SSG generation
  */
 export async function getCompleteMarketDataServer() {
+  if (!supabaseServer) {
+    console.log('Supabase server client not available');
+    return { markets: [], sessions: [], holidays: [] };
+  }
+
   try {
     // Use Promise.all for parallel fetching
     const [marketsResult, sessionsResult, holidaysResult] = await Promise.all([
@@ -88,6 +98,11 @@ export async function getCompleteMarketDataServer() {
  * Get site settings server-side
  */
 export async function getSiteSettingsServer() {
+  if (!supabaseServer) {
+    console.log('Supabase server client not available');
+    return null;
+  }
+
   const { data, error } = await supabaseServer
     .from('settings')
     .select('*')
@@ -108,6 +123,10 @@ export async function getSiteSettingsServer() {
  * Create a new market (admin only)
  */
 export async function createMarket(market: Database['public']['Tables']['markets']['Insert']) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('markets')
     .insert(market)
@@ -129,6 +148,10 @@ export async function updateMarket(
   id: string, 
   updates: Database['public']['Tables']['markets']['Update']
 ) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('markets')
     .update(updates)
@@ -148,6 +171,10 @@ export async function updateMarket(
  * Delete a market (admin only)
  */
 export async function deleteMarket(id: string) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { error } = await supabaseAdmin
     .from('markets')
     .delete()
@@ -163,6 +190,10 @@ export async function deleteMarket(id: string) {
  * Create market sessions (admin only)
  */
 export async function createSessions(sessions: Database['public']['Tables']['sessions']['Insert'][]) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('sessions')
     .insert(sessions)
@@ -183,6 +214,10 @@ export async function updateSession(
   id: string,
   updates: Database['public']['Tables']['sessions']['Update']
 ) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('sessions')
     .update(updates)
@@ -202,6 +237,10 @@ export async function updateSession(
  * Create holiday (admin only)
  */
 export async function createHoliday(holiday: Database['public']['Tables']['holidays']['Insert']) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('holidays')
     .insert(holiday)
@@ -223,6 +262,10 @@ export async function updateHoliday(
   id: string,
   updates: Database['public']['Tables']['holidays']['Update']
 ) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('holidays')
     .update(updates)
@@ -242,6 +285,10 @@ export async function updateHoliday(
  * Delete holiday (admin only)
  */
 export async function deleteHoliday(id: string) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { error } = await supabaseAdmin
     .from('holidays')
     .delete()
@@ -259,6 +306,10 @@ export async function deleteHoliday(id: string) {
 export async function updateSiteSettings(
   updates: Database['public']['Tables']['settings']['Update']
 ) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available');
+  }
+
   const { data, error } = await supabaseAdmin
     .from('settings')
     .update(updates)

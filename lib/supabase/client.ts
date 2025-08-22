@@ -2,20 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/database';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+// Only create Supabase client if environment variables are available
+let supabase: ReturnType<typeof createClient<Database>> | null = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  });
+} else {
+  console.warn('Supabase environment variables not found for client');
 }
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
 
 // Helper functions for common client-side operations
 
@@ -24,6 +26,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
  * This is used for the public homepage
  */
 export async function getActiveMarkets() {
+  if (!supabase) {
+    console.log('Supabase client not available');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('markets')
     .select('*')
@@ -43,6 +50,11 @@ export async function getActiveMarkets() {
  * Get market sessions for specific markets
  */
 export async function getMarketSessions(marketIds: string[]) {
+  if (!supabase) {
+    console.log('Supabase client not available');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
@@ -60,6 +72,11 @@ export async function getMarketSessions(marketIds: string[]) {
  * Get current and upcoming holidays for specific markets
  */
 export async function getMarketHolidays(marketIds: string[], daysAhead: number = 30) {
+  if (!supabase) {
+    console.log('Supabase client not available');
+    return [];
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
@@ -85,6 +102,11 @@ export async function getMarketHolidays(marketIds: string[], daysAhead: number =
  * This is the main function used by the homepage
  */
 export async function getCompleteMarketData() {
+  if (!supabase) {
+    console.log('Supabase client not available');
+    return { markets: [], sessions: [], holidays: [] };
+  }
+
   try {
     // Get all active markets
     const markets = await getActiveMarkets();
@@ -93,7 +115,7 @@ export async function getCompleteMarketData() {
       return { markets: [], sessions: [], holidays: [] };
     }
 
-    const marketIds = markets.map(m => m.id);
+    const marketIds = markets.map((m: Database['public']['Tables']['markets']['Row']) => m.id);
 
     // Get sessions and holidays in parallel
     const [sessions, holidays] = await Promise.all([
@@ -116,6 +138,11 @@ export async function getCompleteMarketData() {
  * Get site settings
  */
 export async function getSiteSettings() {
+  if (!supabase) {
+    console.log('Supabase client not available');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('settings')
     .select('*')
@@ -135,6 +162,11 @@ export async function getSiteSettings() {
  * Useful for admin dashboard
  */
 export function subscribeToMarketChanges(callback: () => void) {
+  if (!supabase) {
+    console.log('Supabase client not available for subscriptions');
+    return () => {}; // Return no-op unsubscribe function
+  }
+
   const subscription = supabase
     .channel('market-changes')
     .on('postgres_changes', 

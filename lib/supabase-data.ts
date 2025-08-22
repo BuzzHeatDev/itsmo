@@ -2,19 +2,26 @@
 import { createClient } from '@supabase/supabase-js';
 import { Market, Session, Holiday } from './types/market';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Only create Supabase client if environment variables are available
+let supabase: ReturnType<typeof createClient> | null = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} else {
   console.warn('Supabase environment variables not found, using mock data');
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Get all active markets with their basic info
  */
 export async function getActiveMarkets(): Promise<Market[]> {
+  if (!supabase) {
+    console.log('Supabase not available, returning empty array');
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('markets')
@@ -28,7 +35,7 @@ export async function getActiveMarkets(): Promise<Market[]> {
       return [];
     }
 
-    return data || [];
+    return (data as unknown as Market[]) || [];
   } catch (error) {
     console.error('Error in getActiveMarkets:', error);
     return [];
@@ -39,7 +46,7 @@ export async function getActiveMarkets(): Promise<Market[]> {
  * Get market sessions for specific markets
  */
 export async function getMarketSessions(marketIds: string[]): Promise<Session[]> {
-  if (marketIds.length === 0) return [];
+  if (!supabase || marketIds.length === 0) return [];
 
   try {
     const { data, error } = await supabase
@@ -52,7 +59,7 @@ export async function getMarketSessions(marketIds: string[]): Promise<Session[]>
       return [];
     }
 
-    return data || [];
+    return (data as unknown as Session[]) || [];
   } catch (error) {
     console.error('Error in getMarketSessions:', error);
     return [];
@@ -63,7 +70,7 @@ export async function getMarketSessions(marketIds: string[]): Promise<Session[]>
  * Get current and upcoming holidays for specific markets
  */
 export async function getMarketHolidays(marketIds: string[], daysAhead: number = 30): Promise<Holiday[]> {
-  if (marketIds.length === 0) return [];
+  if (!supabase || marketIds.length === 0) return [];
 
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -83,7 +90,7 @@ export async function getMarketHolidays(marketIds: string[], daysAhead: number =
       return [];
     }
 
-    return data || [];
+    return (data as unknown as Holiday[]) || [];
   } catch (error) {
     console.error('Error in getMarketHolidays:', error);
     return [];
@@ -98,6 +105,11 @@ export async function getCompleteMarketData(): Promise<{
   sessions: Session[];
   holidays: Holiday[];
 }> {
+  if (!supabase) {
+    console.log('Supabase not available, returning empty data');
+    return { markets: [], sessions: [], holidays: [] };
+  }
+
   try {
     // Get all active markets first
     const markets = await getActiveMarkets();
@@ -129,6 +141,11 @@ export async function getCompleteMarketData(): Promise<{
  * Test connection to Supabase
  */
 export async function testSupabaseConnection(): Promise<boolean> {
+  if (!supabase) {
+    console.log('Supabase not available for connection test');
+    return false;
+  }
+
   try {
     const { error } = await supabase
       .from('markets')
