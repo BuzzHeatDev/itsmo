@@ -48,20 +48,14 @@ export default async function Home() {
                 <span className="text-orange-500">?</span>
               </h1>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">
-                Live updates every minute
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Real-time global market status
-              </div>
-            </div>
+                               <div className="text-right">
+                   </div>
           </div>
         </div>
       </header>
 
       {/* Main content with top padding to account for fixed header */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
         <MarketGrid 
           markets={marketData.markets}
           sessions={marketData.sessions}

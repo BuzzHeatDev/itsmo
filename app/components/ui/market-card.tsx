@@ -54,10 +54,10 @@ export function MarketCard({ market, status, isExpanded = false, onToggleExpand 
           {/* Market name and location */}
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-gray-900 truncate">
-              {market.short_name}
+              {market.name}
             </div>
             <div className="text-sm text-gray-500 truncate">
-              {market.city}
+              {market.city}, {market.country}
             </div>
           </div>
         </div>

@@ -14,6 +14,7 @@ Migrations should be run in chronological order based on the date prefix:
 6. **20250820_006_market_updates.sql** - NYSE/NASDAQ combination, flag updates
 7. **20250820_007_market_updates_fixed.sql** - Fixed version (handles constraints)
 
+
 ## How to Run Migrations
 
 ### Option 1: Supabase Dashboard (Recommended)
@@ -39,7 +40,8 @@ pnpm migrate
 - ✅ **004_complete_seed_data** - Full market data (30 markets)
 - ✅ **005_complete_setup** - All-in-one alternative
 - ✅ **006_market_updates** - Original market updates
-- ⏳ **007_market_updates_fixed** - **CURRENT: Run this for latest changes**
+- ✅ **007_market_updates_fixed** - Market updates with constraint fixes
+
 
 ## What Each Migration Does
 
@@ -78,10 +80,11 @@ pnpm migrate
 - Reorders market positions
 
 ### 007_market_updates_fixed.sql ⭐
-- **CURRENT MIGRATION TO RUN**
 - Fixed version of 006 that handles constraint violations
 - Deletes NASDAQ data before updating to avoid duplicates
 - Same functionality as 006 but without errors
+
+
 
 ## Current State
 
@@ -90,6 +93,8 @@ The database should be at migration **007** with:
 - ✅ ENX with dual flags 🇪🇺🇫🇷
 - ✅ DAX with dual flags 🇪🇺🇩🇪
 - ✅ Proper position ordering
+
+
 
 ## Backup
 

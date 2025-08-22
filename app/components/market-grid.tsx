@@ -140,15 +140,7 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
         );
       })}
 
-      {/* Footer info */}
-      <div className="text-center text-sm text-gray-500 mt-8 pt-8 border-t border-gray-200">
-        <p>
-          Market data updates every minute. Times shown are in local market time.
-        </p>
-        <p className="mt-1">
-          Includes holidays and lunch breaks for accurate status.
-        </p>
-      </div>
+
     </div>
   );
 }
