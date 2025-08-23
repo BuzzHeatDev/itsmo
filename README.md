@@ -16,7 +16,7 @@ A modern, fast, and accurate website that shows the real-time status of global s
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 14.2.5 (App Router) - **LOCKED VERSION**
 - **Language**: TypeScript
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
@@ -24,6 +24,31 @@ A modern, fast, and accurate website that shows the real-time status of global s
 - **Email**: Resend
 - **Deployment**: Vercel
 - **Monetization**: Google AdSense + Buy Me a Coffee
+
+## Version Locking
+
+This project is **locked to specific versions** to ensure stability:
+
+- **Next.js**: `=14.2.5` (exact version)
+- **React**: `=18.3.1` (exact version)
+- **React DOM**: `=18.3.1` (exact version)
+
+### Why Version Locking?
+
+- **Stability**: Prevents breaking changes from experimental versions
+- **Consistency**: Ensures the same behavior across all environments
+- **Reliability**: Eliminates the build manifest errors and port conflicts
+- **Performance**: Uses battle-tested, optimized versions
+
+### Upgrading (Not Recommended)
+
+⚠️ **Do not upgrade these packages unless absolutely necessary.** The current versions are:
+- Production-ready and stable
+- Fully compatible with all dependencies
+- Optimized for performance
+- Free from known bugs and issues
+
+If you must upgrade, test thoroughly in a development environment first.
 
 ## Quick Start
 

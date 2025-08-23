@@ -99,14 +99,17 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
 
   return (
     <div className="space-y-8">
-      {/* Header with last update time */}
+      {/* Header with live indicator */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Is The Stock Market Open?
         </h1>
-        <p className="text-gray-600 text-sm">
-          Last updated: {isClient ? lastUpdate.toLocaleTimeString() : '--:--:--'} • {markets.length} markets
-        </p>
+        <div className="flex items-center justify-center space-x-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-green-600 font-medium">Live</span>
+          <span className="text-gray-400">•</span>
+          <span className="text-gray-600">{markets.length} markets</span>
+        </div>
       </div>
 
       {/* Markets grouped by tier */}
