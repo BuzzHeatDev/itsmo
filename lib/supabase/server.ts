@@ -129,7 +129,7 @@ export async function createMarket(market: Database['public']['Tables']['markets
 
   const { data, error } = await supabaseAdmin
     .from('markets')
-    .insert(market)
+    .insert(market as any)
     .select()
     .single();
 
@@ -154,7 +154,7 @@ export async function updateMarket(
 
   const { data, error } = await supabaseAdmin
     .from('markets')
-    .update(updates)
+    .update(updates as any)
     .eq('id', id)
     .select()
     .single();
@@ -220,7 +220,7 @@ export async function updateSession(
 
   const { data, error } = await supabaseAdmin
     .from('sessions')
-    .update(updates)
+    .update(updates as any)
     .eq('id', id)
     .select()
     .single();
@@ -268,7 +268,7 @@ export async function updateHoliday(
 
   const { data, error } = await supabaseAdmin
     .from('holidays')
-    .update(updates)
+    .update(updates as any)
     .eq('id', id)
     .select()
     .single();
@@ -312,7 +312,7 @@ export async function updateSiteSettings(
 
   const { data, error } = await supabaseAdmin
     .from('settings')
-    .update(updates)
+    .update(updates as any)
     .eq('id', 1)
     .select()
     .single();
