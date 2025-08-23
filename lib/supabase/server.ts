@@ -1,6 +1,6 @@
 // Supabase client for server-side operations
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/database';
+import type { Database } from '../types/database';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -129,7 +129,7 @@ export async function createMarket(market: Database['public']['Tables']['markets
 
   const { data, error } = await supabaseAdmin
     .from('markets')
-    .insert(market as any)
+    .insert(market)
     .select()
     .single();
 
@@ -146,7 +146,7 @@ export async function createMarket(market: Database['public']['Tables']['markets
  */
 export async function updateMarket(
   id: string, 
-  updates: Database['public']['Tables']['markets']['Update']
+  updates: any
 ) {
   if (!supabaseAdmin) {
     throw new Error('Supabase admin client not available');
@@ -154,7 +154,7 @@ export async function updateMarket(
 
   const { data, error } = await supabaseAdmin
     .from('markets')
-    .update(updates as any)
+    .update(updates)
     .eq('id', id)
     .select()
     .single();
@@ -196,7 +196,7 @@ export async function createSessions(sessions: Database['public']['Tables']['ses
 
   const { data, error } = await supabaseAdmin
     .from('sessions')
-    .insert(sessions)
+    .insert(sessions as any)
     .select();
 
   if (error) {
@@ -243,7 +243,7 @@ export async function createHoliday(holiday: Database['public']['Tables']['holid
 
   const { data, error } = await supabaseAdmin
     .from('holidays')
-    .insert(holiday)
+    .insert(holiday as any)
     .select()
     .single();
 

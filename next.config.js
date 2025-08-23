@@ -11,16 +11,13 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   
-  // Performance optimizations
+    // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
-  
-  // Temporarily disable TypeScript checking for build
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  
+
+
+
   // Headers for security and performance
   async headers() {
     return [
