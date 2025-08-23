@@ -127,7 +127,7 @@ export async function createMarket(market: Database['public']['Tables']['markets
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('markets')
     .insert(market)
     .select()
@@ -152,7 +152,7 @@ export async function updateMarket(
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('markets')
     .update(updates)
     .eq('id', id)
@@ -194,7 +194,7 @@ export async function createSessions(sessions: Database['public']['Tables']['ses
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('sessions')
     .insert(sessions as any)
     .select();
@@ -218,7 +218,7 @@ export async function updateSession(
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('sessions')
     .update(updates as any)
     .eq('id', id)
@@ -241,7 +241,7 @@ export async function createHoliday(holiday: Database['public']['Tables']['holid
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('holidays')
     .insert(holiday as any)
     .select()
@@ -266,7 +266,7 @@ export async function updateHoliday(
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('holidays')
     .update(updates as any)
     .eq('id', id)
@@ -310,7 +310,7 @@ export async function updateSiteSettings(
     throw new Error('Supabase admin client not available');
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('settings')
     .update(updates as any)
     .eq('id', 1)

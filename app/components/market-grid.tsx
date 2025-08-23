@@ -126,13 +126,23 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {tierMarkets.map(market => {
                 const status = marketStatuses.get(market.id);
-                if (!status) return null;
+                // Temporary fix: provide a default status if calculation fails
+                const defaultStatus: MarketStatusResult = {
+                  status: 'CLOSED' as const,
+                  label: 'Status calculating...',
+                  isHoliday: false,
+                  holidayName: undefined,
+                  nextChangeAtLocal: new Date(),
+                  remainingMinutes: 0,
+                  remainingFormatted: '0m'
+                };
+                const displayStatus = status || defaultStatus;
 
                 return (
                   <MarketCard
                     key={market.id}
                     market={market}
-                    status={status}
+                    status={displayStatus}
                     isExpanded={expandedMarket === market.id}
                     onToggleExpand={() => handleToggleExpand(market.id)}
                   />

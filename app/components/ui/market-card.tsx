@@ -26,10 +26,7 @@ export function MarketCard({ market, status, isExpanded = false, onToggleExpand 
 
   return (
     <div 
-      className={`
-        bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-        ${isExpanded ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}
-      `}
+      className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer${isExpanded ? ' ring-2 ring-blue-500 ring-opacity-50' : ''}`}
       onClick={onToggleExpand}
       role="button"
       tabIndex={0}
@@ -65,10 +62,7 @@ export function MarketCard({ market, status, isExpanded = false, onToggleExpand 
         {/* Right side: Status and countdown */}
         <div className="flex flex-col items-end space-y-1 flex-shrink-0">
           {/* Status pill */}
-          <div className={`
-            px-2 py-1 rounded-full text-xs font-medium border
-            ${getStatusStyle(status.status)}
-          `}>
+          <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusStyle(status.status)}`}>
             {status.status}
           </div>
           
