@@ -18,9 +18,9 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
     "lucide-react": "^0.540.0",
-    "next": "=14.2.5", // LOCKED: Do not upgrade - stable version
-    "react": "=18.3.1", // LOCKED: Do not upgrade - stable version
-    "react-dom": "=18.3.1", // LOCKED: Do not upgrade - stable version
+    "next": "=14.2.5",
+    "react": "=18.3.1",
+    "react-dom": "=18.3.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
