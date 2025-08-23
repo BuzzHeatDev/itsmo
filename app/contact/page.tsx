@@ -1,39 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import SharedHeader from '../components/shared-header';
 import SharedFooter from '../components/shared-footer';
+import { sendEmail, type EmailFormData } from '../actions/send-email';
 
 export default function Contact() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EmailFormData>({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [state, formAction] = useFormState(sendEmail, { success: false, error: '' });
+  const { pending } = useFormStatus();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-
-    try {
-      // For now, just simulate form submission
-      // In production, you would integrate with Resend or another email service
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate success
-      setSubmitStatus('success');
+  // Reset form after successful submission
+  useEffect(() => {
+    if (state.success) {
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch {
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  }, [state.success]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -103,7 +91,7 @@ export default function Contact() {
                 Send a Message
               </h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form action={formAction} className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Name *
@@ -176,31 +164,27 @@ export default function Contact() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={pending}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isSubmitting ? 'Sending...' : 'Send Message'}
+                  {pending ? 'Sending...' : 'Send Message'}
                 </button>
 
                 {/* Submit Status */}
-                {submitStatus === 'success' && (
+                {state.success && (
                   <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded-md">
                     Thank you! Your message has been sent successfully. We&apos;ll get back to you soon.
                   </div>
                 )}
                 
-                {submitStatus === 'error' && (
+                {state.error && (
                   <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
-                    Sorry, there was an error sending your message. Please try again or contact us directly via email.
+                    {state.error}
                   </div>
                 )}
               </form>
 
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  <strong>Note:</strong> This is a demo form. In production, it would integrate with an email service like Resend to actually send messages.
-                </p>
-              </div>
+
             </div>
           </div>
         </div>
