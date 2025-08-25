@@ -1,15 +1,31 @@
 import { Market, Session, Holiday, MarketStatusResult } from './types/market';
 
 /**
- * Core status engine that determines if a market is open, closed, or at lunch
- * Handles timezones, DST, holidays, and lunch breaks correctly
+ * Simple and reliable market status engine
+ * Uses server UTC time and converts to market local time for calculations
+ * 
+ * USAGE EXAMPLE:
+ * ```typescript
+ * // Get current market status
+ * const status = await calculateMarketStatus(market, sessions, holidays);
+ * 
+ * // Or with specific time
+ * const status = await calculateMarketStatus(market, sessions, holidays, new Date());
+ * 
+ * // Status will include:
+ * // - status: 'OPEN' | 'CLOSED' | 'LUNCH'
+ * // - label: human-readable description
+ * // - nextChangeAtLocal: when status will change
+ * // - remainingMinutes: time until next change
+ * // - remainingFormatted: formatted time string
+ * ```
  */
 
 /**
- * Get current time in a specific timezone
+ * Convert UTC time to market local time
+ * Returns the local time in the market's timezone
  */
-function getTimeInTimezone(date: Date, timezone: string): Date {
-  // Use Intl.DateTimeFormat to get the time in the target timezone
+function getMarketLocalTime(utcTime: Date, timezone: string): Date {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -21,7 +37,7 @@ function getTimeInTimezone(date: Date, timezone: string): Date {
     hour12: false
   });
 
-  const parts = formatter.formatToParts(date);
+  const parts = formatter.formatToParts(utcTime);
   const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
   const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
   const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
@@ -33,81 +49,19 @@ function getTimeInTimezone(date: Date, timezone: string): Date {
 }
 
 /**
- * Create a Date object for a specific time on a given date in a timezone
+ * Get market local date as YYYY-MM-DD string
  */
-function createDateTimeInTimezone(date: Date, timeStr: string, timezone: string): Date {
+function getMarketLocalDate(utcTime: Date, timezone: string): string {
+  const localTime = getMarketLocalTime(utcTime, timezone);
+  return localTime.toISOString().split('T')[0];
+}
+
+/**
+ * Convert time string (HH:MM) to minutes since midnight
+ */
+function timeToMinutes(timeStr: string): number {
   const [hours, minutes] = timeStr.split(':').map(Number);
-  const localDate = getTimeInTimezone(date, timezone);
-  
-  // Create a new date with the specified time
-  const targetDate = new Date(localDate);
-  targetDate.setHours(hours, minutes, 0, 0);
-  
-  return targetDate;
-}
-
-/**
- * Find holiday for a specific date and market
- */
-function findHolidayForDate(market: Market, date: Date, holidays: Holiday[]): Holiday | null {
-  const localDate = getTimeInTimezone(date, market.timezone);
-  const dateStr = localDate.toISOString().split('T')[0]; // YYYY-MM-DD
-  return holidays.find(h => h.market_id === market.id && h.date === dateStr) || null;
-}
-
-/**
- * Get effective schedule for a market on a specific date
- */
-function getEffectiveSchedule(
-  market: Market,
-  date: Date,
-  sessions: Session[],
-  holidays: Holiday[]
-) {
-  const localDate = getTimeInTimezone(date, market.timezone);
-  const weekday = localDate.getDay(); // 0=Sunday, 6=Saturday
-  const holiday = findHolidayForDate(market, date, holidays);
-  
-  // Find the regular session for this weekday
-  const session = sessions.find(s => s.market_id === market.id && s.weekday === weekday);
-  
-  if (!session) {
-    return null; // No trading session for this weekday
-  }
-  
-  // If it's a holiday that's closed all day
-  if (holiday?.is_closed_all_day) {
-    return {
-      openTime: null,
-      closeTime: null,
-      hasLunchBreak: false,
-      isHoliday: true,
-      holidayName: holiday.name,
-    };
-  }
-  
-  // If it's a holiday with time overrides
-  if (holiday && (holiday.open_time_override || holiday.close_time_override)) {
-    return {
-      openTime: holiday.open_time_override || session.open_time,
-      closeTime: holiday.close_time_override || session.close_time,
-      hasLunchBreak: session.has_lunch_break && !holiday.open_time_override, // Disable lunch on partial holidays
-      lunchOpenTime: session.lunch_open_time,
-      lunchCloseTime: session.lunch_close_time,
-      isHoliday: true,
-      holidayName: holiday.name,
-    };
-  }
-  
-  // Regular trading day
-  return {
-    openTime: session.open_time,
-    closeTime: session.close_time,
-    hasLunchBreak: session.has_lunch_break,
-    lunchOpenTime: session.lunch_open_time,
-    lunchCloseTime: session.lunch_close_time,
-    isHoliday: false,
-  };
+  return hours * 60 + minutes;
 }
 
 /**
@@ -126,224 +80,242 @@ function formatRemainingTime(remainingMinutes: number): string {
 }
 
 /**
- * Convert time string (HH:MM) to minutes since midnight
+ * Check if a market is closed due to holidays
  */
-function timeToMinutes(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return hours * 60 + minutes;
+function isMarketClosedForHoliday(market: Market, localDate: string, holidays: Holiday[]): Holiday | null {
+  return holidays.find(h => h.market_id === market.id && h.date === localDate) || null;
 }
 
 /**
- * Get current time as minutes since midnight in market timezone
+ * Find the next trading day for a market
  */
-function getCurrentTimeInMarket(now: Date, timezone: string): number {
-  const localTime = getTimeInTimezone(now, timezone);
-  return localTime.getHours() * 60 + localTime.getMinutes();
-}
-
-/**
- * Find next trading day (skipping weekends and holidays)
- */
-function findNextTradingDay(
-  market: Market,
-  currentDate: Date,
-  sessions: Session[],
-  holidays: Holiday[],
-  maxDaysToCheck: number = 14
-): Date | null {
-  const checkDate = new Date(currentDate);
-  checkDate.setDate(checkDate.getDate() + 1);
+function findNextTradingDay(market: Market, utcTime: Date, sessions: Session[], holidays: Holiday[]): Date | null {
+  let checkDate = new Date(utcTime);
+  let attempts = 0;
+  const maxAttempts = 30; // Prevent infinite loops
   
-  for (let i = 0; i < maxDaysToCheck; i++) {
-    const schedule = getEffectiveSchedule(market, checkDate, sessions, holidays);
+  while (attempts < maxAttempts) {
+    attempts++;
     
-    // If there's a schedule and it's not closed all day
-    if (schedule && schedule.openTime) {
-      return checkDate;
-    }
-    
+    // Move to next day
     checkDate.setDate(checkDate.getDate() + 1);
+    const checkLocalDate = getMarketLocalDate(checkDate, market.timezone);
+    
+    // Check if it's a holiday
+    const holiday = holidays.find(h => h.market_id === market.id && h.date === checkLocalDate);
+    if (holiday) continue;
+    
+    // Check if it's a weekend
+    const localTime = getMarketLocalTime(checkDate, market.timezone);
+    const weekday = localTime.getDay();
+    const hasSession = sessions.some(s => s.market_id === market.id && s.weekday === weekday);
+    
+    if (hasSession) return checkDate;
   }
   
-  return null; // Couldn't find next trading day within reasonable range
+  return null;
 }
 
 /**
- * Calculate minutes until a specific time today or tomorrow
+ * Get the effective trading session for a market on a specific date
  */
-function getMinutesUntilTime(
-  now: Date,
-  targetTimeStr: string,
-  timezone: string,
-  allowTomorrow: boolean = false
-): number {
-  const currentMinutes = getCurrentTimeInMarket(now, timezone);
-  const targetMinutes = timeToMinutes(targetTimeStr);
+function getEffectiveSession(market: Market, utcTime: Date, sessions: Session[], holidays: Holiday[]): Session | null {
+  const localDate = getMarketLocalDate(utcTime, market.timezone);
+  const localTime = getMarketLocalTime(utcTime, market.timezone);
+  const weekday = localTime.getDay();
   
-  if (targetMinutes > currentMinutes) {
-    // Target time is later today
-    return targetMinutes - currentMinutes;
-  } else if (allowTomorrow) {
-    // Target time is tomorrow
-    return (24 * 60) - currentMinutes + targetMinutes;
-  } else {
-    return 0;
+  // Check if it's a holiday
+  const holiday = isMarketClosedForHoliday(market, localDate, holidays);
+  if (holiday && holiday.is_closed_all_day) {
+    return null; // Market is closed all day
   }
+  
+  // Find the session for this weekday
+  return sessions.find(s => s.market_id === market.id && s.weekday === weekday) || null;
 }
 
 /**
- * Main function to calculate market status
+ * Calculate market status based on current time and schedule
  */
-export function calculateMarketStatus(
+export async function calculateMarketStatus(
   market: Market,
   sessions: Session[],
   holidays: Holiday[],
-  now: Date = new Date()
-): MarketStatusResult {
-  const schedule = getEffectiveSchedule(market, now, sessions, holidays);
+  utcTime: Date = new Date()
+): Promise<MarketStatusResult> {
+  console.log(`🔍 Starting status calculation for ${market.name}`);
   
-  if (!schedule || !schedule.openTime || !schedule.closeTime) {
-    // No session found or market is closed all day
-    const nextTradingDay = findNextTradingDay(market, now, sessions, holidays);
-    const nextSession = nextTradingDay 
-      ? sessions.find(s => s.market_id === market.id && s.weekday === getTimeInTimezone(nextTradingDay, market.timezone).getDay())
-      : null;
+  // Get current time in market's local timezone
+  const marketLocalTime = getMarketLocalTime(utcTime, market.timezone);
+  const currentMinutes = marketLocalTime.getHours() * 60 + marketLocalTime.getMinutes();
+  
+  console.log(`🕐 ${market.name} local time: ${marketLocalTime.toLocaleString()}, current minutes: ${currentMinutes}`);
+  
+  // Get effective trading session for today
+  const session = getEffectiveSession(market, utcTime, sessions, holidays);
+  
+  console.log(`📅 ${market.name} session:`, session ? {
+    weekday: session.weekday,
+    open_time: session.open_time,
+    close_time: session.close_time,
+    has_lunch_break: session.has_lunch_break
+  } : 'No session today');
+  
+  if (!session) {
+    // Market is closed today (holiday or no session)
+    console.log(`🚫 ${market.name} is closed today, finding next trading day`);
+    const nextTradingDay = findNextTradingDay(market, utcTime, sessions, holidays);
     
-    if (nextSession && nextTradingDay) {
-      // Calculate time until next opening
-      const daysUntilNext = Math.floor((nextTradingDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const minutesUntilOpen = daysUntilNext * 24 * 60 + getMinutesUntilTime(now, nextSession.open_time, market.timezone, true);
+    if (nextTradingDay) {
+      const nextLocalTime = getMarketLocalTime(nextTradingDay, market.timezone);
+      const nextWeekday = nextLocalTime.getDay();
+      const nextSession = sessions.find(s => s.market_id === market.id && s.weekday === nextWeekday);
+      
+      if (nextSession) {
+        const [nextOpenHour, nextOpenMinute] = nextSession.open_time.split(':').map(Number);
+        const nextOpenTime = new Date(nextLocalTime);
+        nextOpenTime.setHours(nextOpenHour, nextOpenMinute, 0, 0);
+        
+        const minutesUntilNextOpen = Math.floor((nextOpenTime.getTime() - utcTime.getTime()) / (1000 * 60));
+        
+        console.log(`⏰ ${market.name} next open: ${nextOpenTime.toLocaleString()} (in ${formatRemainingTime(minutesUntilNextOpen)})`);
+        
+        return {
+          status: 'CLOSED',
+          label: `opens in ${formatRemainingTime(minutesUntilNextOpen)}`,
+          nextChangeAtLocal: nextOpenTime,
+          remainingMinutes: minutesUntilNextOpen,
+          remainingFormatted: formatRemainingTime(minutesUntilNextOpen),
+        };
+      }
       
       return {
         status: 'CLOSED',
-        label: `opens in ${formatRemainingTime(minutesUntilOpen)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(nextTradingDay, nextSession.open_time, market.timezone),
-        remainingMinutes: minutesUntilOpen,
-        remainingFormatted: formatRemainingTime(minutesUntilOpen),
-        isHoliday: schedule?.isHoliday,
-        holidayName: schedule?.holidayName,
+        label: `opens ${nextLocalTime.toLocaleDateString()}`,
+        nextChangeAtLocal: nextLocalTime,
+        remainingMinutes: 0,
+        remainingFormatted: '0m',
       };
     }
     
-    // Fallback
     return {
       status: 'CLOSED',
-      label: 'closed',
-      nextChangeAtLocal: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      label: 'closed indefinitely',
+      nextChangeAtLocal: utcTime,
       remainingMinutes: 0,
       remainingFormatted: '0m',
-      isHoliday: schedule?.isHoliday,
-      holidayName: schedule?.holidayName,
     };
   }
   
-  const currentMinutes = getCurrentTimeInMarket(now, market.timezone);
-  const openMinutes = timeToMinutes(schedule.openTime);
-  const closeMinutes = timeToMinutes(schedule.closeTime);
+  const openMinutes = timeToMinutes(session.open_time);
+  const closeMinutes = timeToMinutes(session.close_time);
+  
+  console.log(`⏰ ${market.name} trading hours: ${session.open_time} - ${session.close_time} (${openMinutes} - ${closeMinutes})`);
   
   // Handle lunch break if it exists
-  if (schedule.hasLunchBreak && schedule.lunchOpenTime && schedule.lunchCloseTime) {
-    const lunchStartMinutes = timeToMinutes(schedule.lunchOpenTime);
-    const lunchEndMinutes = timeToMinutes(schedule.lunchCloseTime);
+  if (session.has_lunch_break && session.lunch_open_time && session.lunch_close_time) {
+    const lunchStartMinutes = timeToMinutes(session.lunch_open_time);
+    const lunchEndMinutes = timeToMinutes(session.lunch_close_time);
+    
+    console.log(`🍽️ ${market.name} lunch break: ${session.lunch_open_time} - ${session.lunch_close_time}`);
     
     if (currentMinutes >= openMinutes && currentMinutes < lunchStartMinutes) {
-      // Morning session - open until lunch
+      // Before lunch - market is open
       const minutesUntilLunch = lunchStartMinutes - currentMinutes;
       return {
         status: 'OPEN',
         label: `lunch in ${formatRemainingTime(minutesUntilLunch)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(now, schedule.lunchOpenTime, market.timezone),
+        nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilLunch * 60000),
         remainingMinutes: minutesUntilLunch,
         remainingFormatted: formatRemainingTime(minutesUntilLunch),
-        isHoliday: schedule.isHoliday,
-        holidayName: schedule.holidayName,
       };
     } else if (currentMinutes >= lunchStartMinutes && currentMinutes < lunchEndMinutes) {
-      // Lunch break
+      // During lunch
       const minutesUntilReopen = lunchEndMinutes - currentMinutes;
       return {
         status: 'LUNCH',
         label: `reopens in ${formatRemainingTime(minutesUntilReopen)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(now, schedule.lunchCloseTime, market.timezone),
+        nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilReopen * 60000),
         remainingMinutes: minutesUntilReopen,
         remainingFormatted: formatRemainingTime(minutesUntilReopen),
-        isHoliday: schedule.isHoliday,
-        holidayName: schedule.holidayName,
       };
     } else if (currentMinutes >= lunchEndMinutes && currentMinutes < closeMinutes) {
-      // Afternoon session - open until close
+      // After lunch - market is open
       const minutesUntilClose = closeMinutes - currentMinutes;
       return {
         status: 'OPEN',
         label: `closes in ${formatRemainingTime(minutesUntilClose)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(now, schedule.closeTime, market.timezone),
+        nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilClose * 60000),
         remainingMinutes: minutesUntilClose,
         remainingFormatted: formatRemainingTime(minutesUntilClose),
-        isHoliday: schedule.isHoliday,
-        holidayName: schedule.holidayName,
       };
     }
   } else {
-    // No lunch break - simple open/close
+    // No lunch break
     if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
       // Market is open
       const minutesUntilClose = closeMinutes - currentMinutes;
       return {
         status: 'OPEN',
         label: `closes in ${formatRemainingTime(minutesUntilClose)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(now, schedule.closeTime, market.timezone),
+        nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilClose * 60000),
         remainingMinutes: minutesUntilClose,
         remainingFormatted: formatRemainingTime(minutesUntilClose),
-        isHoliday: schedule.isHoliday,
-        holidayName: schedule.holidayName,
       };
     }
   }
   
-  // Market is closed - find next opening
+  // Market is closed
   if (currentMinutes < openMinutes) {
-    // Closed, opens later today
+    // Market opens later today
     const minutesUntilOpen = openMinutes - currentMinutes;
     return {
       status: 'CLOSED',
       label: `opens in ${formatRemainingTime(minutesUntilOpen)}`,
-      nextChangeAtLocal: createDateTimeInTimezone(now, schedule.openTime, market.timezone),
+      nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilOpen * 60000),
       remainingMinutes: minutesUntilOpen,
       remainingFormatted: formatRemainingTime(minutesUntilOpen),
-      isHoliday: schedule.isHoliday,
-      holidayName: schedule.holidayName,
     };
   } else {
     // Closed for the day, find next trading day
-    const nextTradingDay = findNextTradingDay(market, now, sessions, holidays);
-    const nextSession = nextTradingDay 
-      ? sessions.find(s => s.market_id === market.id && s.weekday === getTimeInTimezone(nextTradingDay, market.timezone).getDay())
-      : null;
+    const nextTradingDay = findNextTradingDay(market, utcTime, sessions, holidays);
     
-    if (nextSession && nextTradingDay) {
-      const daysUntilNext = Math.floor((nextTradingDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const minutesUntilOpen = daysUntilNext * 24 * 60 + getMinutesUntilTime(now, nextSession.open_time, market.timezone, true);
+    if (nextTradingDay) {
+      const nextLocalTime = getMarketLocalTime(nextTradingDay, market.timezone);
+      const nextWeekday = nextLocalTime.getDay();
+      const nextSession = sessions.find(s => s.market_id === market.id && s.weekday === nextWeekday);
       
-      return {
-        status: 'CLOSED',
-        label: `opens in ${formatRemainingTime(minutesUntilOpen)}`,
-        nextChangeAtLocal: createDateTimeInTimezone(nextTradingDay, nextSession.open_time, market.timezone),
-        remainingMinutes: minutesUntilOpen,
-        remainingFormatted: formatRemainingTime(minutesUntilOpen),
-        isHoliday: schedule.isHoliday,
-        holidayName: schedule.holidayName,
-      };
+      if (nextSession) {
+        const [nextOpenHour, nextOpenMinute] = nextSession.open_time.split(':').map(Number);
+        const nextOpenTime = new Date(nextLocalTime);
+        nextOpenTime.setHours(nextOpenHour, nextOpenMinute, 0, 0);
+        
+        const minutesUntilNextOpen = Math.floor((nextOpenTime.getTime() - utcTime.getTime()) / (1000 * 60));
+        
+        return {
+          status: 'CLOSED',
+          label: `opens in ${formatRemainingTime(minutesUntilNextOpen)}`,
+          nextChangeAtLocal: nextOpenTime,
+          remainingMinutes: minutesUntilNextOpen,
+          remainingFormatted: formatRemainingTime(minutesUntilNextOpen),
+        };
+      }
     }
     
-    // Fallback
     return {
       status: 'CLOSED',
-      label: 'closed',
-      nextChangeAtLocal: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      label: 'closed indefinitely',
+      nextChangeAtLocal: utcTime,
       remainingMinutes: 0,
       remainingFormatted: '0m',
-      isHoliday: schedule.isHoliday,
-      holidayName: schedule.holidayName,
     };
   }
 }
+
+// Legacy function names for backward compatibility
+export const findHolidayForDate = (market: Market, date: Date, holidays: Holiday[]): Holiday | null => {
+  const localDate = getMarketLocalDate(date, market.timezone);
+  return holidays.find(h => h.market_id === market.id && h.date === localDate) || null;
+};
+
+export const getEffectiveSchedule = getEffectiveSession;

@@ -3,7 +3,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Market, Session, Holiday, MarketStatusResult } from '@/lib/types/market';
 import { calculateMarketStatus } from '@/lib/status-engine';
-import MarketCard from './ui/market-card';
+import { MarketCard } from './ui/market-card';
+
+// Client-side UTC time component to avoid hydration errors
+function UTCTimeDisplay() {
+  const [utcTime, setUtcTime] = useState<string>('');
+
+  useEffect(() => {
+    setUtcTime(new Date().toISOString());
+    const interval = setInterval(() => {
+      setUtcTime(new Date().toISOString());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="text-sm text-gray-500 mb-6">
+      Server UTC: {utcTime || 'Loading...'}
+    </div>
+  );
+}
 
 interface MarketGridProps {
   markets: Market[];
@@ -13,40 +32,61 @@ interface MarketGridProps {
 
 export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
   const [marketStatuses, setMarketStatuses] = useState<Map<string, MarketStatusResult>>(new Map());
-  const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [isClient, setIsClient] = useState(false);
+  const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
 
-  // Ensure we're on the client side to avoid hydration issues
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Calculate market statuses
-  const calculateAllStatuses = useCallback(() => {
-    const now = new Date();
+  // Calculate all market statuses
+  const calculateAllStatuses = useCallback(async () => {
+    const now = new Date(); // Use server UTC time directly
+    console.log('🕐 Calculating market statuses at:', now.toISOString());
+    
     const statusMap = new Map<string, MarketStatusResult>();
     
-    markets.forEach(market => {
-      const marketSessions = sessions.filter(s => s.market_id === market.id);
-      const marketHolidays = holidays.filter(h => h.market_id === market.id);
-      const status = calculateMarketStatus(market, marketSessions, marketHolidays, now);
-      statusMap.set(market.id, status);
-    });
+    for (const market of markets) {
+      try {
+        const marketSessions = sessions.filter(s => s.market_id === market.id);
+        const marketHolidays = holidays.filter(h => h.market_id === market.id);
+        
+        console.log(`🔍 Calculating status for ${market.name}:`, {
+          sessions: marketSessions.length,
+          holidays: marketHolidays.length,
+          timezone: market.timezone
+        });
+        
+        const status = await calculateMarketStatus(market, marketSessions, marketHolidays, now);
+        statusMap.set(market.id, status);
+        
+        console.log(`✅ ${market.name}: ${status.status} - ${status.label}`);
+      } catch (error) {
+        console.error(`❌ Error calculating status for ${market.name}:`, error);
+        // Set a fallback status
+        statusMap.set(market.id, {
+          status: 'CLOSED',
+          label: 'Error calculating status',
+          nextChangeAtLocal: now,
+          remainingMinutes: 0,
+          remainingFormatted: '0m',
+        });
+      }
+    }
     
     setMarketStatuses(statusMap);
     setLastUpdate(now);
+    console.log('✅ Updated market statuses successfully');
   }, [markets, sessions, holidays]);
 
   // Initial calculation
   useEffect(() => {
-    calculateAllStatuses();
+    const initStatuses = async () => {
+      await calculateAllStatuses();
+    };
+    initStatuses();
   }, [calculateAllStatuses]);
 
   // Update every minute
   useEffect(() => {
-    const interval = setInterval(() => {
-      calculateAllStatuses();
+    const interval = setInterval(async () => {
+      await calculateAllStatuses();
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
@@ -104,12 +144,13 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Is The Stock Market Open?
         </h1>
-        <div className="flex items-center justify-center space-x-2">
+        <div className="flex items-center justify-center space-x-2 mb-4">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <span className="text-green-600 font-medium">Live</span>
           <span className="text-gray-400">•</span>
           <span className="text-gray-600">{markets.length} markets</span>
         </div>
+        
       </div>
 
       {/* Markets grouped by tier */}
@@ -126,12 +167,10 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {tierMarkets.map(market => {
                 const status = marketStatuses.get(market.id);
-                // Temporary fix: provide a default status if calculation fails
+                // Provide a default status if calculation fails
                 const defaultStatus: MarketStatusResult = {
                   status: 'CLOSED' as const,
                   label: 'Status calculating...',
-                  isHoliday: false,
-                  holidayName: undefined,
                   nextChangeAtLocal: new Date(),
                   remainingMinutes: 0,
                   remainingFormatted: '0m'
@@ -153,6 +192,10 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
         );
       })}
 
+      {/* Footer with UTC time display */}
+      <div className="text-center pt-8 border-t border-gray-200">
+        <UTCTimeDisplay />
+      </div>
 
     </div>
   );
