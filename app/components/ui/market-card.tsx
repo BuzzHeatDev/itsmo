@@ -1,15 +1,17 @@
 'use client';
 
-import { Market, MarketStatusResult } from '@/lib/types/market';
+import { Market, MarketStatusResult, Session } from '@/lib/types/market';
+import { OpeningHours } from './opening-hours';
 
 interface MarketCardProps {
   market: Market;
   status: MarketStatusResult;
+  sessions: Session[];
   isExpanded?: boolean;
   onToggleExpand?: () => void;
 }
 
-export function MarketCard({ market, status, isExpanded = false, onToggleExpand }: MarketCardProps) {
+export function MarketCard({ market, status, sessions, isExpanded = false, onToggleExpand }: MarketCardProps) {
   // Determine status color and style
   const getStatusStyle = (marketStatus: string) => {
     switch (marketStatus) {
@@ -83,25 +85,30 @@ export function MarketCard({ market, status, isExpanded = false, onToggleExpand 
       {/* Expanded content */}
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="space-y-2">
-            <div className="text-sm">
-              <span className="font-medium text-gray-700">Full Name:</span>
-              <span className="ml-2 text-gray-600">{market.name}</span>
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-gray-700">Location:</span>
-              <span className="ml-2 text-gray-600">{market.city}, {market.country}</span>
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-gray-700">Timezone:</span>
-              <span className="ml-2 text-gray-600">{market.timezone}</span>
-            </div>
-            {status.isHoliday && (
+          <div className="space-y-4">
+            <div className="space-y-2">
               <div className="text-sm">
-                <span className="font-medium text-gray-700">Holiday:</span>
-                <span className="ml-2 text-gray-600">{status.holidayName}</span>
+                <span className="font-medium text-gray-700">Full Name:</span>
+                <span className="ml-2 text-gray-600">{market.name}</span>
               </div>
-            )}
+              <div className="text-sm">
+                <span className="font-medium text-gray-700">Location:</span>
+                <span className="ml-2 text-gray-600">{market.city}, {market.country}</span>
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-gray-700">Timezone:</span>
+                <span className="ml-2 text-gray-600">{market.timezone}</span>
+              </div>
+              {status.isHoliday && (
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Holiday:</span>
+                  <span className="ml-2 text-gray-600">{status.holidayName}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Opening Hours Accordion */}
+            <OpeningHours sessions={sessions} />
           </div>
         </div>
       )}

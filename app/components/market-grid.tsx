@@ -182,6 +182,7 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
                     key={market.id}
                     market={market}
                     status={displayStatus}
+                    sessions={sessions.filter(s => s.market_id === market.id)}
                     isExpanded={expandedMarket === market.id}
                     onToggleExpand={() => handleToggleExpand(market.id)}
                   />
