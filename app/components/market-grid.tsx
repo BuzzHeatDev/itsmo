@@ -34,6 +34,7 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
   const [marketStatuses, setMarketStatuses] = useState<Map<string, MarketStatusResult>>(new Map());
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Calculate all market statuses
   const calculateAllStatuses = useCallback(async () => {
@@ -72,6 +73,7 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
     
     setMarketStatuses(statusMap);
     setLastUpdate(now);
+    setIsLoading(false);
     console.log('✅ Updated market statuses successfully');
   }, [markets, sessions, holidays]);
 
@@ -137,6 +139,20 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
     );
   }
 
+  // Show loading state while calculating statuses
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Is The Stock Market Open?
+          </h1>
+          <p className="text-gray-600 text-sm">Checking market statuses...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Header with live indicator */}
@@ -167,21 +183,35 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {tierMarkets.map(market => {
                 const status = marketStatuses.get(market.id);
-                // Provide a default status if calculation fails
-                const defaultStatus: MarketStatusResult = {
-                  status: 'CLOSED' as const,
-                  label: 'Status calculating...',
-                  nextChangeAtLocal: new Date(),
-                  remainingMinutes: 0,
-                  remainingFormatted: '0m'
-                };
-                const displayStatus = status || defaultStatus;
+                // Only show status if it's been calculated
+                if (!status) {
+                  return (
+                    <div key={market.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-2xl" role="img" aria-label={`${market.country} flag`}>
+                          {market.flag_emoji}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-gray-900 truncate">
+                            {market.name}
+                          </div>
+                          <div className="text-sm text-gray-500 truncate">
+                            {market.city}, {market.country}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          Loading...
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <MarketCard
                     key={market.id}
                     market={market}
-                    status={displayStatus}
+                    status={status}
                     sessions={sessions.filter(s => s.market_id === market.id)}
                     isExpanded={expandedMarket === market.id}
                     onToggleExpand={() => handleToggleExpand(market.id)}
