@@ -1,11 +1,37 @@
 import Link from 'next/link';
-import SharedHeader from '../components/shared-header';
-import SharedFooter from '../components/shared-footer';
 
 export default function AboutUs() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <SharedHeader />
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+              <img 
+                src="/branding/itsmo logo3.jpeg" 
+                alt="IsTheStockMarketOpen Logo" 
+                className="w-20 h-20"
+              />
+              <h1 className="text-2xl font-bold">
+                <span className="text-gray-900">IsTheStockMarket</span>
+                <span className="text-green-600">Open</span>
+              </h1>
+            </Link>
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Home
+              </Link>
+              <Link href="/about" className="text-green-600 font-medium">
+                About
+              </Link>
+              <Link href="/contact" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Contact
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
 
       {/* Breadcrumbs */}
       <div className="pt-32 pb-6 bg-white border-b border-gray-200">
@@ -79,8 +105,6 @@ export default function AboutUs() {
           </div>
         </div>
       </main>
-
-      <SharedFooter />
     </div>
   );
 }

@@ -18,7 +18,7 @@ function UTCTimeDisplay() {
   }, []);
 
   return (
-    <div className="text-sm text-gray-500 mb-6">
+    <div className="text-sm text-gray-500">
       Server UTC: {utcTime || 'Loading...'}
     </div>
   );
@@ -138,9 +138,9 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div>
       {/* Header with live indicator */}
-      <div className="text-center">
+      <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Is The Stock Market Open?
         </h1>
@@ -159,8 +159,8 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
         if (!tierMarkets || tierMarkets.length === 0) return null;
 
         return (
-          <section key={tier} className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">
+          <section key={tier} className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">
               {getTierTitle(tier)}
             </h2>
             
@@ -192,8 +192,8 @@ export function MarketGrid({ markets, sessions, holidays }: MarketGridProps) {
         );
       })}
 
-      {/* Footer with UTC time display */}
-      <div className="text-center pt-8 border-t border-gray-200">
+      {/* UTC time display */}
+      <div className="text-center mt-4">
         <UTCTimeDisplay />
       </div>
 

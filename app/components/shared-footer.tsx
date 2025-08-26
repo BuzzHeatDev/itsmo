@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function SharedFooter() {
   return (
-    <footer className="bg-white border-t border-gray-200 mt-16">
+    <footer className="bg-white border-t border-gray-200 mt-2">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center text-sm text-gray-500">
           <p className="mb-2">
@@ -19,4 +19,3 @@ export default function SharedFooter() {
     </footer>
   );
 }
-
