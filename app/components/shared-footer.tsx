@@ -12,7 +12,7 @@ export default function SharedFooter() {
           {/* Support Link */}
           <div className="mb-4">
             <a 
-              href="https://www.buymeacoffee.com/itsmo" 
+              href="https://www.buymeacoffee.com/isthestockmarketopen" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
