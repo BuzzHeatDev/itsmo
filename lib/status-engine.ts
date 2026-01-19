@@ -118,8 +118,9 @@ function findNextTradingDay(market: Market, utcTime: Date, sessions: Session[], 
 
 /**
  * Get the effective trading session for a market on a specific date
+ * Handles holiday overrides (half-days) by modifying the base session
  */
-function getEffectiveSession(market: Market, utcTime: Date, sessions: Session[], holidays: Holiday[]): Session | null {
+function getEffectiveSession(market: Market, utcTime: Date, sessions: Session[], holidays: Holiday[]): { session: Session | null; holiday: Holiday | null } {
   const localDate = getMarketLocalDate(utcTime, market.timezone);
   const localTime = getMarketLocalTime(utcTime, market.timezone);
   const weekday = localTime.getDay();
@@ -127,11 +128,28 @@ function getEffectiveSession(market: Market, utcTime: Date, sessions: Session[],
   // Check if it's a holiday
   const holiday = isMarketClosedForHoliday(market, localDate, holidays);
   if (holiday && holiday.is_closed_all_day) {
-    return null; // Market is closed all day
+    return { session: null, holiday }; // Market is closed all day
   }
   
-  // Find the session for this weekday
-  return sessions.find(s => s.market_id === market.id && s.weekday === weekday) || null;
+  // Find the base session for this weekday
+  const baseSession = sessions.find(s => s.market_id === market.id && s.weekday === weekday);
+  if (!baseSession) {
+    return { session: null, holiday };
+  }
+  
+  // If there's a holiday with time overrides, create a modified session
+  if (holiday && (holiday.open_time_override || holiday.close_time_override)) {
+    const modifiedSession: Session = {
+      ...baseSession,
+      open_time: holiday.open_time_override || baseSession.open_time,
+      close_time: holiday.close_time_override || baseSession.close_time,
+      // Keep lunch break settings from base session unless overridden
+      // (lunch breaks are typically not overridden on half-days)
+    };
+    return { session: modifiedSession, holiday };
+  }
+  
+  return { session: baseSession, holiday: holiday || null };
 }
 
 /**
@@ -151,14 +169,16 @@ export async function calculateMarketStatus(
   
   console.log(`🕐 ${market.name} local time: ${marketLocalTime.toLocaleString()}, current minutes: ${currentMinutes}`);
   
-  // Get effective trading session for today
-  const session = getEffectiveSession(market, utcTime, sessions, holidays);
+  // Get effective trading session for today (handles holiday overrides)
+  const { session, holiday } = getEffectiveSession(market, utcTime, sessions, holidays);
   
   console.log(`📅 ${market.name} session:`, session ? {
     weekday: session.weekday,
     open_time: session.open_time,
     close_time: session.close_time,
-    has_lunch_break: session.has_lunch_break
+    has_lunch_break: session.has_lunch_break,
+    isHoliday: !!holiday,
+    holidayName: holiday?.name
   } : 'No session today');
   
   if (!session) {
@@ -186,6 +206,8 @@ export async function calculateMarketStatus(
           nextChangeAtLocal: nextOpenTime,
           remainingMinutes: minutesUntilNextOpen,
           remainingFormatted: formatRemainingTime(minutesUntilNextOpen),
+          isHoliday: !!holiday,
+          holidayName: holiday?.name,
         };
       }
       
@@ -195,6 +217,8 @@ export async function calculateMarketStatus(
         nextChangeAtLocal: nextLocalTime,
         remainingMinutes: 0,
         remainingFormatted: '0m',
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
       };
     }
     
@@ -204,6 +228,8 @@ export async function calculateMarketStatus(
       nextChangeAtLocal: utcTime,
       remainingMinutes: 0,
       remainingFormatted: '0m',
+      isHoliday: !!holiday,
+      holidayName: holiday?.name,
     };
   }
   
@@ -228,6 +254,8 @@ export async function calculateMarketStatus(
         nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilLunch * 60000),
         remainingMinutes: minutesUntilLunch,
         remainingFormatted: formatRemainingTime(minutesUntilLunch),
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
       };
     } else if (currentMinutes >= lunchStartMinutes && currentMinutes < lunchEndMinutes) {
       // During lunch
@@ -238,6 +266,8 @@ export async function calculateMarketStatus(
         nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilReopen * 60000),
         remainingMinutes: minutesUntilReopen,
         remainingFormatted: formatRemainingTime(minutesUntilReopen),
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
       };
     } else if (currentMinutes >= lunchEndMinutes && currentMinutes < closeMinutes) {
       // After lunch - market is open
@@ -248,6 +278,8 @@ export async function calculateMarketStatus(
         nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilClose * 60000),
         remainingMinutes: minutesUntilClose,
         remainingFormatted: formatRemainingTime(minutesUntilClose),
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
       };
     }
   } else {
@@ -261,6 +293,8 @@ export async function calculateMarketStatus(
         nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilClose * 60000),
         remainingMinutes: minutesUntilClose,
         remainingFormatted: formatRemainingTime(minutesUntilClose),
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
       };
     }
   }
@@ -275,6 +309,8 @@ export async function calculateMarketStatus(
       nextChangeAtLocal: new Date(marketLocalTime.getTime() + minutesUntilOpen * 60000),
       remainingMinutes: minutesUntilOpen,
       remainingFormatted: formatRemainingTime(minutesUntilOpen),
+      isHoliday: !!holiday,
+      holidayName: holiday?.name,
     };
   } else {
     // Closed for the day, find next trading day
@@ -298,6 +334,8 @@ export async function calculateMarketStatus(
           nextChangeAtLocal: nextOpenTime,
           remainingMinutes: minutesUntilNextOpen,
           remainingFormatted: formatRemainingTime(minutesUntilNextOpen),
+          isHoliday: !!holiday,
+          holidayName: holiday?.name,
         };
       }
     }
@@ -308,6 +346,8 @@ export async function calculateMarketStatus(
       nextChangeAtLocal: utcTime,
       remainingMinutes: 0,
       remainingFormatted: '0m',
+      isHoliday: !!holiday,
+      holidayName: holiday?.name,
     };
   }
 }
@@ -318,4 +358,8 @@ export const findHolidayForDate = (market: Market, date: Date, holidays: Holiday
   return holidays.find(h => h.market_id === market.id && h.date === localDate) || null;
 };
 
-export const getEffectiveSchedule = getEffectiveSession;
+// Legacy export - returns just the session for backward compatibility
+export const getEffectiveSchedule = (market: Market, utcTime: Date, sessions: Session[], holidays: Holiday[]): Session | null => {
+  const { session } = getEffectiveSession(market, utcTime, sessions, holidays);
+  return session;
+};
