@@ -50,10 +50,22 @@ function getMarketLocalTime(utcTime: Date, timezone: string): Date {
 
 /**
  * Get market local date as YYYY-MM-DD string
+ * Uses the timezone formatter to get the correct local date (not UTC)
  */
 function getMarketLocalDate(utcTime: Date, timezone: string): string {
-  const localTime = getMarketLocalTime(utcTime, timezone);
-  return localTime.toISOString().split('T')[0];
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+
+  const parts = formatter.formatToParts(utcTime);
+  const year = parts.find(p => p.type === 'year')?.value || '0';
+  const month = parts.find(p => p.type === 'month')?.value || '0';
+  const day = parts.find(p => p.type === 'day')?.value || '0';
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
