@@ -58,10 +58,17 @@ export async function getCompleteMarketDataServer() {
         .from('sessions')
         .select('*'),
       
-      supabaseServer
-        .from('holidays')
-        .select('*')
-        .gte('date', new Date().toISOString().split('T')[0])
+      (() => {
+        // Use yesterday to account for timezone differences
+        // Holidays are stored as market local dates, so we need to fetch
+        // from yesterday to ensure we don't miss today's holiday due to UTC offset
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return supabaseServer
+          .from('holidays')
+          .select('*')
+          .gte('date', yesterday.toISOString().split('T')[0]);
+      })()
     ]);
 
     if (marketsResult.error) {
