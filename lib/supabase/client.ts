@@ -70,6 +70,7 @@ export async function getMarketSessions(marketIds: string[]) {
 
 /**
  * Get current and upcoming holidays for specific markets
+ * Fetches holidays from yesterday to account for timezone differences
  */
 export async function getMarketHolidays(marketIds: string[], daysAhead: number = 30) {
   if (!supabase) {
@@ -77,7 +78,13 @@ export async function getMarketHolidays(marketIds: string[], daysAhead: number =
     return [];
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  // Use yesterday to account for timezone differences
+  // Holidays are stored as market local dates, so we need to fetch
+  // from yesterday to ensure we don't miss today's holiday due to UTC offset
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const startDate = yesterday.toISOString().split('T')[0];
+  
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
   const futureDateStr = futureDate.toISOString().split('T')[0];
@@ -86,7 +93,7 @@ export async function getMarketHolidays(marketIds: string[], daysAhead: number =
     .from('holidays')
     .select('*')
     .in('market_id', marketIds)
-    .gte('date', today)
+    .gte('date', startDate)
     .lte('date', futureDateStr);
 
   if (error) {

@@ -182,8 +182,13 @@ export async function calculateMarketStatus(
   console.log(`🕐 ${market.name} local time: ${marketLocalTime.toLocaleString()}, current minutes: ${currentMinutes}`);
   
   // Get effective trading session for today (handles holiday overrides)
+  const localDate = getMarketLocalDate(utcTime, market.timezone);
   const { session, holiday } = getEffectiveSession(market, utcTime, sessions, holidays);
   
+  console.log(`📅 ${market.name} local date: ${localDate}, holidays available: ${holidays.filter(h => h.market_id === market.id).length}`);
+  if (holidays.filter(h => h.market_id === market.id).length > 0) {
+    console.log(`📅 ${market.name} holiday dates:`, holidays.filter(h => h.market_id === market.id).map(h => h.date));
+  }
   console.log(`📅 ${market.name} session:`, session ? {
     weekday: session.weekday,
     open_time: session.open_time,
