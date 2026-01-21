@@ -1,144 +1,71 @@
-// Supabase client for client-side operations
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/database';
+/**
+ * ⚠️ DEPRECATED: Client-side data fetching functions are no longer used
+ * 
+ * Home page now uses static configuration files:
+ * - src/config/markets.ts
+ * - src/config/sessions.ts
+ * - src/config/holidays.ts
+ * 
+ * Supabase client initialization removed to prevent any module-level queries.
+ * Admin/auth functions may still need client - create per-use if needed.
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import type { Database } from '../types/database';
+import type { createClient } from '@supabase/supabase-js';
 
-// Only create Supabase client if environment variables are available
-let supabase: ReturnType<typeof createClient<Database>> | null = null;
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  });
-} else {
-  console.warn('Supabase environment variables not found for client');
-}
+// Supabase client no longer initialized at module level
+// Prevents any accidental queries during page load
+// For admin/auth features, create client on-demand
+const supabase: ReturnType<typeof createClient<Database>> | null = null;
 
 // Helper functions for common client-side operations
 
 /**
- * Get all active markets with their basic info
- * This is used for the public homepage
+ * ⚠️ DEPRECATED: These functions are no longer used for runtime data fetching
+ * 
+ * Home page now uses static configuration files:
+ * - src/config/markets.ts
+ * - src/config/sessions.ts
+ * - src/config/holidays.ts
+ * 
+ * Functions return empty data to prevent accidental use and ensure no
+ * Supabase queries occur during page render.
+ */
+
+/**
+ * @deprecated Use static config from src/config/markets.ts instead
+ * Returns empty array - no Supabase query executed
  */
 export async function getActiveMarkets() {
-  if (!supabase) {
-    console.log('Supabase client not available');
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('markets')
-    .select('*')
-    .eq('is_active', true)
-    .order('tier', { ascending: true })
-    .order('position', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching active markets:', error);
-    return [];
-  }
-
-  return data;
+  console.warn('⚠️ getActiveMarkets() is deprecated - use static config from src/config/markets.ts');
+  return [];
 }
 
 /**
- * Get market sessions for specific markets
+ * @deprecated Use static config from src/config/sessions.ts instead
+ * Returns empty array - no Supabase query executed
  */
 export async function getMarketSessions(marketIds: string[]) {
-  if (!supabase) {
-    console.log('Supabase client not available');
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('sessions')
-    .select('*')
-    .in('market_id', marketIds);
-
-  if (error) {
-    console.error('Error fetching market sessions:', error);
-    return [];
-  }
-
-  return data;
+  console.warn('⚠️ getMarketSessions() is deprecated - use static config from src/config/sessions.ts');
+  return [];
 }
 
 /**
- * Get current and upcoming holidays for specific markets
- * Fetches holidays from yesterday to account for timezone differences
+ * @deprecated Use static config from src/config/holidays.ts instead
+ * Returns empty array - no Supabase query executed
  */
 export async function getMarketHolidays(marketIds: string[], daysAhead: number = 30) {
-  if (!supabase) {
-    console.log('Supabase client not available');
-    return [];
-  }
-
-  // Use yesterday to account for timezone differences
-  // Holidays are stored as market local dates, so we need to fetch
-  // from yesterday to ensure we don't miss today's holiday due to UTC offset
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const startDate = yesterday.toISOString().split('T')[0];
-  
-  const futureDate = new Date();
-  futureDate.setDate(futureDate.getDate() + daysAhead);
-  const futureDateStr = futureDate.toISOString().split('T')[0];
-
-  const { data, error } = await supabase
-    .from('holidays')
-    .select('*')
-    .in('market_id', marketIds)
-    .gte('date', startDate)
-    .lte('date', futureDateStr);
-
-  if (error) {
-    console.error('Error fetching market holidays:', error);
-    return [];
-  }
-
-  return data;
+  console.warn('⚠️ getMarketHolidays() is deprecated - use static config from src/config/holidays.ts');
+  return [];
 }
 
 /**
- * Get complete market data (markets + sessions + holidays) for status calculation
- * This is the main function used by the homepage
+ * @deprecated Use static config files instead
+ * Returns empty data - no Supabase query executed
  */
 export async function getCompleteMarketData() {
-  if (!supabase) {
-    console.log('Supabase client not available');
-    return { markets: [], sessions: [], holidays: [] };
-  }
-
-  try {
-    // Get all active markets
-    const markets = await getActiveMarkets();
-    
-    if (markets.length === 0) {
-      return { markets: [], sessions: [], holidays: [] };
-    }
-
-    const marketIds = markets.map((m: Database['public']['Tables']['markets']['Row']) => m.id);
-
-    // Get sessions and holidays in parallel
-    const [sessions, holidays] = await Promise.all([
-      getMarketSessions(marketIds),
-      getMarketHolidays(marketIds),
-    ]);
-
-    return {
-      markets,
-      sessions,
-      holidays,
-    };
-  } catch (error) {
-    console.error('Error fetching complete market data:', error);
-    return { markets: [], sessions: [], holidays: [] };
-  }
+  console.warn('⚠️ getCompleteMarketData() is deprecated - use static config from src/config/');
+  return { markets: [], sessions: [], holidays: [] };
 }
 
 /**

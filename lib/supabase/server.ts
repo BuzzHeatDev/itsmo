@@ -35,93 +35,28 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 /**
- * Server-side function to get complete market data
- * Used for ISR/SSG generation
+ * ⚠️ DEPRECATED: This function is no longer used for runtime data fetching
+ * 
+ * Home page now uses static configuration files:
+ * - src/config/markets.ts
+ * - src/config/sessions.ts
+ * - src/config/holidays.ts
+ * 
+ * @deprecated Use static config files instead
+ * Returns empty data - no Supabase query executed
  */
 export async function getCompleteMarketDataServer() {
-  if (!supabaseServer) {
-    console.log('Supabase server client not available');
-    return { markets: [], sessions: [], holidays: [] };
-  }
-
-  try {
-    // Use Promise.all for parallel fetching
-    const [marketsResult, sessionsResult, holidaysResult] = await Promise.all([
-      supabaseServer
-        .from('markets')
-        .select('*')
-        .eq('is_active', true)
-        .order('tier', { ascending: true })
-        .order('position', { ascending: true }),
-      
-      supabaseServer
-        .from('sessions')
-        .select('*'),
-      
-      (() => {
-        // Use yesterday to account for timezone differences
-        // Holidays are stored as market local dates, so we need to fetch
-        // from yesterday to ensure we don't miss today's holiday due to UTC offset
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return supabaseServer
-          .from('holidays')
-          .select('*')
-          .gte('date', yesterday.toISOString().split('T')[0]);
-      })()
-    ]);
-
-    if (marketsResult.error) {
-      console.error('Error fetching markets:', marketsResult.error);
-      return { markets: [], sessions: [], holidays: [] };
-    }
-
-    if (sessionsResult.error) {
-      console.error('Error fetching sessions:', sessionsResult.error);
-      return { markets: marketsResult.data || [], sessions: [], holidays: [] };
-    }
-
-    if (holidaysResult.error) {
-      console.error('Error fetching holidays:', holidaysResult.error);
-      return { 
-        markets: marketsResult.data || [], 
-        sessions: sessionsResult.data || [], 
-        holidays: [] 
-      };
-    }
-
-    return {
-      markets: marketsResult.data || [],
-      sessions: sessionsResult.data || [],
-      holidays: holidaysResult.data || [],
-    };
-  } catch (error) {
-    console.error('Error in getCompleteMarketDataServer:', error);
-    return { markets: [], sessions: [], holidays: [] };
-  }
+  console.warn('⚠️ getCompleteMarketDataServer() is deprecated - use static config from src/config/');
+  return { markets: [], sessions: [], holidays: [] };
 }
 
 /**
- * Get site settings server-side
+ * @deprecated Not used on home page
+ * Returns null - no Supabase query executed
  */
 export async function getSiteSettingsServer() {
-  if (!supabaseServer) {
-    console.log('Supabase server client not available');
-    return null;
-  }
-
-  const { data, error } = await supabaseServer
-    .from('settings')
-    .select('*')
-    .eq('id', 1)
-    .single();
-
-  if (error) {
-    console.error('Error fetching site settings:', error);
-    return null;
-  }
-
-  return data;
+  console.warn('⚠️ getSiteSettingsServer() is deprecated - not used on home page');
+  return null;
 }
 
 // Admin functions using service role key

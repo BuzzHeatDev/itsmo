@@ -1,34 +1,17 @@
 import MarketGrid from './components/market-grid';
-import { getCompleteMarketData } from '@/lib/supabase-data';
-import { mockMarkets, mockSessions, mockHolidays } from '@/lib/mock-data';
+import { markets } from '@/src/config/markets';
+import { sessions } from '@/src/config/sessions';
+import { holidays } from '@/src/config/holidays';
 import SharedHeader from './components/shared-header';
 import SharedFooter from './components/shared-footer';
 
-export default async function Home() {
-  // Try to fetch real data from Supabase, fallback to mock data
-  let marketData;
-  try {
-    marketData = await getCompleteMarketData();
-    
-    // If no data from Supabase, use mock data
-    if (marketData.markets.length === 0) {
-      console.log('No Supabase data found, using mock data');
-      marketData = {
-        markets: mockMarkets,
-        sessions: mockSessions,
-        holidays: mockHolidays,
-      };
-    } else {
-      console.log(`Loaded ${marketData.markets.length} markets from Supabase`);
-    }
-  } catch (error) {
-    console.error('Error loading market data, using mock data:', error);
-    marketData = {
-      markets: mockMarkets,
-      sessions: mockSessions,
-      holidays: mockHolidays,
-    };
-  }
+export default function Home() {
+  // Use static configuration instead of Supabase queries
+  const marketData = {
+    markets,
+    sessions,
+    holidays,
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       <SharedHeader />
